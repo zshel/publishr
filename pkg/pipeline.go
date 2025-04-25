@@ -12,6 +12,8 @@ import (
 	"github.com/packagrio/publishr/pkg/mgr"
 	"log"
 	"path"
+	"os"
+	"path/filepath"
 )
 
 type Pipeline struct {
@@ -79,6 +81,15 @@ func (p *Pipeline) Start(config config.Interface) error {
 func (p *Pipeline) PipelineInitStep() error {
 	// start the source, and whatever work needs to be done there.
 	// MUST set options.GitParentPath
+	cwdPath, _ := os.Getwd()
+	p.Data.GitLocalPath = cwdPath
+	p.Data.GitParentPath = filepath.Dir(cwdPath)
+
+	if err := p.ParseRepoConfig(); err != nil {
+		return err
+	}
+
+
 	log.Println("pipeline_init_step")
 	scmImpl, serr := scm.Create(p.Config.GetString(config.PACKAGR_SCM), p.Data, p.Config, nil)
 	if serr != nil {
@@ -118,7 +129,7 @@ func (p *Pipeline) ParseRepoConfig() error {
 	repoConfig := path.Join(p.Data.GitLocalPath, p.Config.GetString(config.PACKAGR_ENGINE_REPO_CONFIG_PATH))
 	if utils.FileExists(repoConfig) {
 		if err := p.Config.ReadConfig(repoConfig); err != nil {
-			return errors.New("An error occured while parsing repository capsule.yml file")
+			return errors.New("An error occured while parsing repository packagr.yml file")
 		}
 	} else {
 		log.Println("No repo capsule.yml file found, using existing config.")
